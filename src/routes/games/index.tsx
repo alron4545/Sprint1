@@ -1,20 +1,26 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { validateGamesSearch } from '../../lib/searchSchemas'
-import { listGames } from '../../server/directoryLoader'
+import { getPlayerById, listGames } from '../../server/directoryLoader'
 
 export const Route = createFileRoute('/games/')({
   validateSearch: validateGamesSearch,
   loaderDeps: ({ search }) => ({ search }),
   // `team` (URL param, see docs/search-params-notes.md) filters by opponent
   // name — the seed schedule has no team-code field, only opponent names.
-  loader: ({ deps: { search } }) =>
-    listGames({ opponent: search.team, date: search.date }),
+  // `player`, when present, is context set by a player-detail page link —
+  // the seed data has no games-per-player relation yet, so it labels the
+  // view rather than filtering the list (see docs/search-params-notes.md).
+  loader: ({ deps: { search } }) => ({
+    games: listGames({ opponent: search.team, date: search.date }),
+    contextPlayer: search.player ? getPlayerById(search.player) ?? null : null,
+    contextPlayerId: search.player ?? null,
+  }),
   component: GamesIndexPage,
 })
 
 function GamesIndexPage() {
   const search = Route.useSearch()
-  const games = Route.useLoaderData()
+  const { games, contextPlayer, contextPlayerId } = Route.useLoaderData()
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -22,6 +28,36 @@ function GamesIndexPage() {
       <p className="mt-2 text-slate-600">
         Schedule for upcoming and recent games.
       </p>
+
+      {contextPlayerId ? (
+        <p className="mt-4 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-slate-700">
+          {contextPlayer ? (
+            <>
+              Showing games context for player{' '}
+              <span className="font-medium">{contextPlayer.name}</span>.
+              Player-specific schedules aren&rsquo;t modeled yet, so this is
+              the full schedule.{' '}
+              <Link
+                to="/players/$playerId"
+                params={{ playerId: contextPlayer.id }}
+                className="font-medium text-sky-700 underline"
+              >
+                Back to {contextPlayer.name}
+              </Link>
+            </>
+          ) : (
+            <>
+              Games context was requested for player id{' '}
+              <span className="font-mono">{contextPlayerId}</span>, but no
+              roster entry matches that id anymore &mdash; showing the full
+              schedule instead.{' '}
+              <Link to="/players" className="font-medium text-sky-700 underline">
+                Back to players
+              </Link>
+            </>
+          )}
+        </p>
+      ) : null}
 
       <p className="mt-4 text-sm text-slate-600">
         Active filters: opponent contains={' '}

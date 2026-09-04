@@ -51,6 +51,20 @@ myself — see note below — so these need a real check on your machine.
   within the options object, and having it after `loader` silently broke
   `deps` typing (caught by `tsc`, not by eye).
 
+## Step 10 additions
+- `src/components/NotFoundPlayer.tsx` — dedicated not-found component, used
+  by `src/routes/players/$playerId.tsx` instead of an inline branch.
+- Found player pages now link to `/games?player=<id>` (type-safe `Link`,
+  validated by `searchSchemas.ts`); `/games` shows a banner naming that
+  player with a link back, or a "stale bookmark" message if the id no
+  longer matches anyone.
+- `AppNav.tsx`: fixed a real bug while wiring active-state highlighting —
+  the "Home" link had no `activeOptions`, so TanStack Router's default
+  fuzzy/prefix active-match would have made Home appear "active" on every
+  page (every path starts with `/`). Added `activeOptions={{ exact: true }}`
+  to Home only; Players/Games intentionally keep fuzzy matching so
+  `/players/$playerId` still highlights the Players tab.
+
 ## Risks / next sprint
 - `/games`'s `team` search param currently filters by opponent-name
   substring, not a real team code, because the seed schedule doesn't model

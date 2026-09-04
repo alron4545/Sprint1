@@ -37,6 +37,13 @@ export interface GamesSearch {
   team?: string
   /** Plain YYYY-MM-DD string for this sprint; omitted means "any date". */
   date?: string
+  /**
+   * Optional cross-link context set by a player detail page (Step 10).
+   * The seed data has no games-per-player relation yet, so this labels
+   * the view ("games context for this player") rather than filtering the
+   * list — see docs in games/index.tsx for the honest caveat.
+   */
+  player?: string
 }
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
@@ -56,5 +63,11 @@ export function validateGamesSearch(
       ? rawDate
       : undefined
 
-  return { team, date }
+  const rawPlayer = search.player
+  const player =
+    typeof rawPlayer === 'string' && rawPlayer.trim().length > 0
+      ? rawPlayer.trim()
+      : undefined
+
+  return { team, date, player }
 }

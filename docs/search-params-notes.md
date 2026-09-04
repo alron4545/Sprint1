@@ -32,7 +32,15 @@
     shape falls back to `undefined` ("any date").
 - Bad input handling: same pattern as players — unknown keys ignored,
   invalid values fall back to "no filter," never a crash.
+- `player` — optional player id (any non-empty trimmed string; not
+  validated against real ids since it's just cross-link context). Set by
+  the "View games" link on a player detail page. **Important caveat:**
+  the seed schedule has no games-per-player relation, so this key
+  *labels* the games page ("showing context for player X") rather than
+  actually filtering which games appear — see Step 10 notes.
 - Example bookmark URL: `/games?team=North%20Bay&date=2026-03-14`
+- Example cross-link URL: `/games?player=p-17` (shows a context banner for
+  Alex Mercer, does not filter the list)
 
 ## Why this shape
 Hockey ops staff need to bookmark and share a *filtered* view (e.g. "just
