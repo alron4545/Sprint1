@@ -1,5 +1,16 @@
 node_modules/
 dist/
+.output/
+.vinxi/
+.vercel/
 .tanstack/
-.DS_Store
+
+# Never commit real env files — Sprint 2 introduces Supabase keys here.
+.env
+.env.local
+.env.*.local
 *.local
+
+# OS / editor noise
+.DS_Store
+*.log
