@@ -3,7 +3,7 @@
 ## Client story (one paragraph)
 
 The directory must load real player and staff data from Supabase instead of
-the hardcoded seed data it uses today (`src/data/hockeySeed.ts`). Unlike that
+the hardcoded seed data it uses today (`app/data/hockeySeed.ts`). Unlike that
 seed file — which is just a `.ts` file anyone with the code can already read —
 Supabase requires a credential to authorize any read; it will not return data
 to an anonymous request. If the Supabase service-role key ends up in any file
@@ -17,10 +17,10 @@ structure, not by remembering to be careful.
 ## What might naively run in the client (risks)
 
 - Creating a Supabase client directly inside a route file or component (e.g.
-  `src/routes/players/index.tsx`) with the service-role key read from env.
-- Extending `src/server/directoryLoader.ts` to call Supabase but keeping it
+  `app/routes/players/index.tsx`) with the service-role key read from env.
+- Extending `app/server/directoryLoader.ts` to call Supabase but keeping it
   importable from client-rendered components — the file living under
-  `src/server/` today only holds that boundary by convention, not by any
+  `app/server/` today only holds that boundary by convention, not by any
   enforced mechanism, since it currently just reads the local seed module.
 - Calling Supabase from a `useEffect` or a button's event handler, which
   would put the client that constructed it (and any key it holds) into the
@@ -40,8 +40,8 @@ structure, not by remembering to be careful.
   what `listPlayers()` / `getPlayerById()` in `directoryLoader.ts` do today
   against the seed array, but against a real Supabase query instead.
 - A dedicated server-only Supabase client module (e.g.
-  `src/lib/supabase.server.ts`), never imported by anything under
-  `src/routes/**` or `src/components/**`.
+  `app/lib/supabase.server.ts`), never imported by anything under
+  `app/routes/**` or `app/components/**`.
 - Reading `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` from `process.env` —
   this must happen in a server-only module, not in a shared config file
   that client code also imports.
@@ -49,8 +49,8 @@ structure, not by remembering to be careful.
 ## What may stay in the client
 
 - The existing presentational UI: the players table, filter controls,
-  loading/empty states (`src/routes/players/index.tsx`,
-  `src/components/*`).
+  loading/empty states (`app/routes/players/index.tsx`,
+  `app/components/*`).
 - Calling the TanStack Start server function and rendering whatever plain
   data-transfer shape it returns — the component never sees a credential,
   only the already-fetched rows.
@@ -64,8 +64,8 @@ structure, not by remembering to be careful.
       `SUPABASE_SERVICE_ROLE_KEY` by name only (no real values), and neither
       name uses a client-exposed prefix.
 - [ ] A server-only Supabase client module exists and a repo-wide search for
-      its import path turns up zero matches under `src/routes/` or
-      `src/components/`.
+      its import path turns up zero matches under `app/routes/` or
+      `app/components/`.
 - [ ] A TanStack Start server function loads directory data; `players/index.tsx`'s
       loader calls that function and never imports Supabase or reads a
       Supabase env var directly.

@@ -13,7 +13,7 @@ const config = defineConfig({
   // and server functions on Vercel (and Railway/Node/Docker) — Nitro reads
   // the hosting platform from the build environment automatically.
   // See node_modules/@tanstack/start-client-core/skills/start-core/deployment/SKILL.md.
-  plugins: [devtools(), tailwindcss(), tanstackStart(), nitro(), viteReact()],
+  plugins: [devtools(), tailwindcss(), tanstackStart({ srcDirectory: 'app' }), nitro(), viteReact()],
 })
 
 export default config

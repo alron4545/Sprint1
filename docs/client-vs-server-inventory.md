@@ -19,24 +19,24 @@ the process or ingredients behind it.
 
 ## 1. Safe on the browser client
 
-- **Players/staff table and filter UI** (`src/routes/players/index.tsx`,
+- **Players/staff table and filter UI** (`app/routes/players/index.tsx`,
   the Sprint 1 filter controls). *Why:* this is exactly the layout and
   interaction Sprint 1 already proved works, and it's meant to be seen.
 - **Calling the server function and rendering whatever plain rows it
   returns.** *Why:* the component only ever holds already-fetched data,
   never a credential.
 - **Type shapes like `PlayerPosition` / `PlayerRosterStatus`**
-  (`src/data/hockeySeed.ts`). *Why:* these are just labels ("F", "D", "G"),
+  (`app/data/hockeySeed.ts`). *Why:* these are just labels ("F", "D", "G"),
   not secrets — knowing the shape of the data doesn't expose anything.
 
 ## 2. Must stay on the server
 
 - **The Supabase service-role key itself.** *Why:* this is the actual
   "recipe" — full read/write access to the database.
-- **The Supabase client construction** (future `src/lib/supabase.server.ts`).
+- **The Supabase client construction** (future `app/lib/supabase.server.ts`).
   *Why:* it's the only thing that ever touches the key.
 - **The actual database read/query logic** — what replaces `listPlayers()`
-  / `getPlayerById()` in `src/server/directoryLoader.ts` once it queries
+  / `getPlayerById()` in `app/server/directoryLoader.ts` once it queries
   Supabase instead of the seed array. *Why:* the query itself can reveal
   schema or filtering details a stranger shouldn't get for free.
 - **Raw error messages from a failed Supabase call.** *Why:* a raw database
