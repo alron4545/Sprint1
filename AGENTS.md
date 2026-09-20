@@ -81,7 +81,7 @@ tanstackIntent:
     for: "Isomorphic-by-default principle, environment boundary functions (createServerFn, createServerOnlyFn, createClientOnlyFn, createIsomorphicFn), ClientOnly component, useHydrated hook, import protection, dead code elimination, environment variable safety (VITE_ prefix, process.env)."
   - id: "@tanstack/start-client-core#start-core/middleware"
     run: "npx @tanstack/intent@latest load @tanstack/start-client-core#start-core/middleware"
-    for: "createMiddleware, request middleware (.server only), server function middleware (.client + .server), context passing via next({ context }), sendContext for client-server transfer, global middleware via createStart in app/start.ts, middleware factories, method order enforcement, fetch override precedence."
+    for: "createMiddleware, request middleware (.server only), server function middleware (.client + .server), context passing via next({ context }), sendContext for client-server transfer, global middleware via createStart in src/start.ts, middleware factories, method order enforcement, fetch override precedence."
   - id: "@tanstack/start-client-core#start-core/server-functions"
     run: "npx @tanstack/intent@latest load @tanstack/start-client-core#start-core/server-functions"
     for: "createServerFn (GET/POST), validator (Zod or function), useServerFn hook, server context utilities (getRequest, getRequestHeader, setResponseHeader, setResponseStatus), error handling (throw errors, redirect, notFound), streaming, FormData handling, file organization (.functions.ts, .server.ts)."
