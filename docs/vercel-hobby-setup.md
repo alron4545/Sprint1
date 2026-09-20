@@ -45,3 +45,34 @@ workaround, which would have dropped server rendering entirely.
 - Incognito check of Production URL: _do one manual pass yourself too,
   since a fetch from outside a browser isn't quite the same as a private
   window — but functionally this is already confirmed working._
+
+## Regression found and fixed (2026-09-20)
+
+Checked the live Production URL directly and got a **404**. Root cause:
+somewhere during an earlier, unrelated cleanup this semester (recovering
+docs and removing a duplicate `src/` tree after a bad zip merge), the
+`nitro` dependency and the `nitro()` plugin documented above had been
+lost from `package.json` and `vite.config.ts` — confirmed by checking
+`origin/main` on GitHub directly, not just the local working copy.
+Without Nitro, the build produces a plain client bundle with no server
+runtime, which is exactly a 404 in production.
+
+Fix: reinstalled the same way as the first deploy
+(`npm install nitro@npm:nitro-nightly@latest`) and re-added `nitro()` to
+`vite.config.ts`'s plugin list, right after `tanstackStart(...)`.
+Verified locally before pushing: `npm run build` now generates
+`.output/server/index.mjs` (the actual Nitro server entry point) again,
+not just a static `dist/`; `npx tsc --noEmit` and `npm test` (10/10) are
+still clean; grepped `.output/public` (the assets actually served to the
+browser) for `SUPABASE_SERVICE_ROLE_KEY`/`service_role`/
+`getSupabaseServerClient`/`directory_people`/`jersey_no`/`SUPABASE_URL` —
+no matches.
+
+**Still needed for production to show real directory data (not just stop
+404ing):** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
+and `SUPABASE_SERVICE_ROLE_KEY` need to be added in Vercel's dashboard
+(Project → Settings → Environment Variables) — no real Supabase project
+has been provisioned yet, so `/directory` will still show its own
+`UPSTREAM`/`UNKNOWN` error state after this fix deploys, which is the
+correct, secret-free behavior for "server function works, but there's no
+real backend behind it yet."
