@@ -1,119 +1,147 @@
-# Server function contract — directory data
+# Server Function Contract — Hockey Operations Directory
 
-This is the contract for `src/server/directoryLoader.ts`'s exported
-functions: what a caller may send in, exactly what comes back on success,
-and exactly what comes back on failure. It's written now, against the
-Sprint 1 seed data, specifically so that swapping the function bodies to
-real Supabase-backed queries (see `/tmp/boundary-risk-notes.md`) never
-requires a caller (a route loader) to change. If an implementation and this
-document disagree, the implementation is wrong — fix the code, or bring a
-question here and update the contract deliberately, don't let the code
-drift.
+## Purpose
+Load directory rows (players and staff) for the Hockey Operations Directory
+UI from the real `directory_people` Supabase table. Runs only on the
+server, through `app/lib/supabase.server.ts`. Never exposes the
+service-role key or any other secret to the browser.
 
-None of these are wrapped in `createServerFn` yet — they're currently
-plain functions reading `src/data/hockeySeed.ts`. This contract already
-describes the shape they must have once they are server functions backed
-by Supabase, so today's implementation and tomorrow's can be checked
-against the same document.
+## Function identity
+- **Export name:** `listDirectoryEntries`
+- **Module:** `app/server/directoryLoader.ts` — evolves the existing
+  `listPlayers()` in place rather than adding a parallel file, per the
+  plan already recorded in `docs/boundary-risk-notes.md`. `listGames()` in
+  the same file is untouched: `directory_people` covers players and staff
+  only, not games.
+- **Kind:** TanStack Start server function (server-only entry point the
+  `/players` route loader calls).
 
-## General rules (apply to every function below)
+## Inputs (from the UI / caller)
+All inputs are optional so the first caller can request "everything" and
+later add filters.
 
-- **Inputs are a small, explicitly validated set of named fields — never a
-  passed-through options/filter bag.** A caller cannot send anything that
-  reaches a query builder unvalidated. Anything not listed under a
-  function's "Input" below is not part of the contract, even if a future
-  implementation would technically accept it.
-- **Success responses return exactly the fields listed below — never a
-  raw database row.** Adding a column to a future Supabase table must
-  never change what a caller receives. The mapping from row to response is
-  a named, unit-testable step, not `return data`.
-- **Failure responses never contain a raw error object, a driver/database
-  message, a stack trace, an env var, or a secret.** Every failure is one
-  of the closed `reason` values listed below — nothing else is a valid
-  value for that field, and no other field is added to carry extra detail.
-- **"Not found" is a normal result, not a failure.** A missing player by
-  id is an expected outcome the UI has a designed state for (see
-  `docs/requirements-brief.md`, acceptance criterion 6) — it is not the
-  same category as "the database is unreachable," and the two must stay
-  visibly different in this contract so a future implementation can't
-  quietly collapse them into one ambiguous shape.
+| Input | Type (plain language) | Rules |
+| --- | --- | --- |
+| `search` | string | Trim whitespace. Empty or missing means "no text filter." Match against `full_name` (case-insensitive). |
+| `role` | string | One of `"player"`, `"staff"`, or omit/empty for both — matches the table's own `role` check constraint exactly. Reject any other value with a validation error. |
+| `limit` | number | Optional max rows. Default `100`. Clamp between 1 and 200. |
 
-## `listPlayers()`
+**Non-inputs (must NOT be accepted from the browser):** database
+passwords, service-role keys, raw SQL, or "run any query" strings.
 
-- **Input:** none.
-- **Success:** `PlayerView[]`, where
+## Success output
+Return a plain object the UI can render without further secret access.
+Field names below map directly to `directory_people` columns — see the
+schema in the previous step:
 
-  ```ts
-  interface PlayerView {
-    id: string
-    name: string
-    number: number
-    position: 'C' | 'LW' | 'RW' | 'D' | 'G'
-    team: string
-    status: 'active' | 'injured' | 'reserve'
-  }
-  ```
+```ts
+type DirectoryEntry = {
+  id: string;              // directory_people.id
+  displayName: string;     // directory_people.full_name
+  role: "player" | "staff"; // directory_people.role
+  teamName: string | null; // directory_people.team
+  positionOrTitle: string | null; // directory_people.position
+  jerseyNumber: number | null;    // directory_people.jersey_no — null for staff
+};
 
-  (Matches `SeedPlayer` in `src/data/hockeySeed.ts` today. Any future
-  Supabase row may have more columns than this — only these six fields
-  ever leave the server function.)
-- **Failure:** `{ ok: false, reason: 'unavailable' }` — the only failure
-  case for this function is "the data source could not be reached/queried
-  right now." An empty roster is `[]`, not a failure.
+type ListDirectoryEntriesResult = {
+  ok: true;
+  entries: DirectoryEntry[];
+  // Useful later for empty states and debugging without leaking internals
+  meta: { count: number; appliedFilters: { search: string | null; role: string | null } };
+};
+```
 
-## `getPlayerById(playerId: string)`
+There is deliberately no `isActive` field — `directory_people` has no such
+column. Do not invent a field the table doesn't have.
 
-- **Input:** `playerId` — a non-empty string. Rejected (see Failure below)
-  if empty, not a string, or missing. *(The brief leaves the exact id
-  format — e.g. numeric-only — undecided; tighten this rule here first if
-  a later step settles it, then update the implementation to match, not
-  the other way around.)*
-- **Success:** a single `PlayerView` (same shape as above) for a matching
-  id, **or** `undefined` when no player matches that id. Both are success
-  outcomes — the caller (the route loader) is what turns `undefined` into
-  the not-found UI state, via `notFound()`, same as it does today.
-- **Failure:** `{ ok: false, reason: 'invalid_input' }` for a malformed
-  `playerId`, or `{ ok: false, reason: 'unavailable' }` if the data source
-  could not be reached/queried. Neither failure reason, nor anything else
-  returned in that shape, may include the value the caller sent, a
-  database message, or any part of a raw Supabase error.
+### Mapping notes (UI-facing, not a raw DB dump)
+- Map DB columns into the fields above inside a pure helper (this is what
+  later steps unit-test with Vitest).
+- Do not return service keys, auth tokens, or internal Supabase error
+  objects to the client.
+- `id` is the table's own UUID — stable enough for a React key as-is.
 
-## `listGames()`
+## Error shapes
+Always return a structured failure the UI can branch on — never throw raw
+secrets or stack traces to the browser.
 
-- **Input:** none.
-- **Success:** `GameView[]`, where
+```ts
+type ListDirectoryEntriesError = {
+  ok: false;
+  error: {
+    code: "VALIDATION" | "UPSTREAM" | "UNKNOWN";
+    message: string; // safe, human-readable, no secrets
+  };
+};
+```
 
-  ```ts
-  interface GameView {
-    id: string
-    opponent: string
-    date: string // ISO date, e.g. "2026-10-04"
-    location: 'home' | 'away'
-    result?: string
-  }
-  ```
+| Situation | code | message guidance |
+| --- | --- | --- |
+| Bad `role` or `limit` | `VALIDATION` | Say which input was invalid; do not echo secrets. |
+| Supabase/network failure | `UPSTREAM` | "Directory temporarily unavailable." Log details server-side only. |
+| Unexpected bug | `UNKNOWN` | Generic failure message; log details server-side only. |
 
-  (Matches `SeedGame` in `src/data/hockeySeed.ts` today.)
-- **Failure:** `{ ok: false, reason: 'unavailable' }`, same rule as
-  `listPlayers()`.
+`UNAUTHORIZED` is intentionally left out of this version — there is no
+auth yet (that's a later sprint), so a code for it here would be
+speculative. Add it when auth actually exists, without changing the
+success shape.
 
-## What this means for the current Sprint 1 code
+**Result type:** `ListDirectoryEntriesResult | ListDirectoryEntriesError`
+(discriminated by `ok`).
 
-`src/server/directoryLoader.ts`'s three functions already match the
-*success* shapes above, because `SeedPlayer`/`SeedGame` were written to be
-exactly the UI-facing fields. They do **not** yet return the failure shape
-above — reading an in-memory array can't fail, so there's been nothing to
-map. Implementing this contract for real is a follow-up step: wrap each
-function in `createServerFn`, read through a server-only Supabase client
-(`src/lib/supabase.server.ts`, not yet created), and add a `try/catch` that
-turns any thrown error into `{ ok: false, reason: 'unavailable' }` —
-without that file ever containing a raw Supabase error, `process.env`, or
-the service-role key.
+## Pure logic vs I/O (critical for later Vitest)
 
-## Explicitly out of scope for this contract
+### Pure (no network, no env reads) — extract into mappers
+- Normalize and validate inputs (`search`, `role`, `limit`).
+- Map one raw `directory_people` row → `DirectoryEntry`.
+- Case-insensitive name filtering in memory, if not pushed to the SQL
+  query itself.
 
-- Search/filter params on `listPlayers()` (position, team) — the brief
-  marks these optional-later; adding them means adding named, validated
-  fields here first, not accepting a filter object.
-- Auth/authorization on any of these calls.
-- Anything about `POST`/write operations — all three functions are reads.
+### I/O / server-only
+- Call `getSupabaseServerClient()` from `app/lib/supabase.server.ts`.
+- Query `directory_people`, applying `role`/`search`/`limit`.
+- Log detailed errors on the server only.
+
+## Boundary rules (from prior docs)
+- The service-role key: server only — never in this contract's return
+  type, never in a client bundle. See `docs/boundary-risk-notes.md`.
+- This function always uses the **server** Supabase client
+  (`app/lib/supabase.server.ts`), never a client-side one — there isn't a
+  client-side Supabase client in this project at all, by design (see
+  `docs/client-vs-server-inventory.md`).
+- The browser receives only `DirectoryEntry` data or a safe error
+  message — never a raw Supabase row or error object.
+
+## Non-goals (out of scope for this function)
+- Creating, updating, or deleting directory rows.
+- File uploads or images.
+- Full-text search ranking beyond a simple case-insensitive name match.
+- Pagination cursors — `limit` alone is enough for v1.
+- Auth / `UNAUTHORIZED` handling — added later without changing the
+  success shape.
+- A single-entry lookup for `/players/$playerId` (still backed by seed
+  data via `getPlayerById()`) — that needs its own contract in a later
+  step; this one only covers the list.
+
+## Acceptance checks for implementers (next step)
+1. `listDirectoryEntries` runs only through the server-function path —
+   never called with the service key from a browser-imported module.
+2. Inputs match the table above; an unrecognized `role` value returns
+   `VALIDATION`, not a thrown exception.
+3. Success payload matches the `DirectoryEntry` fields exactly — no
+   `isActive`, `jerseyNumber` present and nullable.
+4. Failures use `ok: false` and never include the service key or raw env
+   values.
+5. The row → `DirectoryEntry` mapper and the input-validation logic are
+   both extractable into their own pure functions, so a later step can
+   unit-test them without touching Supabase.
+
+## Traceability
+- Risks addressed: `docs/boundary-risk-notes.md` (secrets off the
+  browser; trusted reads on the server).
+- Placement: `docs/client-vs-server-inventory.md` (directory load =
+  server; render = client).
+- Real schema this contract targets: `directory_people` table created in
+  the previous step (id, full_name, role, team, position, jersey_no,
+  created_at).
