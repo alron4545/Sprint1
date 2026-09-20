@@ -1,8 +1,17 @@
-// Pure helpers for listDirectoryEntries — no Supabase import, no env
-// access, no network call. Per docs/server-function-contract.md: "The row
-// -> DirectoryEntry mapper and the input-validation logic are both
-// extractable into their own pure functions, so a later step can
-// unit-test them without touching Supabase."
+// Pure helpers for listDirectoryEntries (app/server/directory.ts) — no
+// Supabase import, no env access, no network call. Per
+// docs/server-function-contract.md: "The row -> DirectoryEntry mapper and
+// the input-validation logic are both extractable into their own pure
+// functions, so a later step can unit-test them without touching
+// Supabase." That later step is now — this file is what Vitest will
+// import directly, with plain objects, no server/database involved.
+//
+// Field names below match the real directory_people columns already used
+// in app/server/directory.ts (id, full_name, role, team, position,
+// jersey_no) rather than a generic scaffold's names — there is no
+// is_active column on this table, so no active/inactive filter exists
+// here; see docs/server-function-contract.md for why that field is
+// deliberately not invented.
 
 export type DirectoryRole = 'player' | 'staff'
 
@@ -87,7 +96,7 @@ function parseLimit(raw: unknown): ParseResult<number> {
 /**
  * Validates and normalizes raw caller input into the shape
  * listDirectoryEntries' query needs. Returns the first validation failure
- * found, never a thrown exception — see directoryLoader.ts for why.
+ * found, never a thrown exception — see app/server/directory.ts for why.
  */
 export function parseListDirectoryEntriesInput(raw: {
   search?: unknown

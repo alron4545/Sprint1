@@ -25,9 +25,9 @@ import {
   parseListDirectoryEntriesInput,
   type DirectoryEntry,
   type DirectoryPersonRow,
-} from './directoryMappers'
+} from '../lib/directory/mappers'
 
-export type { DirectoryEntry, DirectoryRole } from './directoryMappers'
+export type { DirectoryEntry, DirectoryRole } from '../lib/directory/mappers'
 
 export type ListDirectoryEntriesErrorCode = 'VALIDATION' | 'UPSTREAM' | 'UNKNOWN'
 
