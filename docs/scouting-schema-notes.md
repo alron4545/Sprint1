@@ -79,3 +79,10 @@ public anon key, so anyone holding that key could read **and write**
 these tables directly. Acceptable for this class project (no real data,
 no auth in the brief), but it is the first thing to fix — enable RLS and
 add policies — before this schema ever holds real scouting data.
+- **002_scouting_aggregates_rpc.sql** (Sprint 3, Topic 6) — added the
+  `player_event_counts(p_game_id, p_played_from, p_played_to)` function:
+  per-player event and goal totals, computed in one set-based query. Note:
+  two migration files share the `002_` prefix (`002_player_notes.sql` was
+  already applied before this one). That is harmless when migrations are
+  pasted into the SQL editor, but rename one before ever using
+  `supabase db push`.
