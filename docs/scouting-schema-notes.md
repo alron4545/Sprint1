@@ -62,3 +62,20 @@ guarantee instead of just an application-level hope.
   contradict the brief's scope (no fans/payments/video/fantasy creeping
   in) — they're ordinary roster/schedule fields a real scouting board
   would need, not new features.
+
+## Change log
+
+- **002_player_notes.sql** (Sprint 3, Topic 5) — added nullable `players.notes text`
+  so scouts can keep free-text notes on a player and the typed
+  `updatePlayerNotes()` helper has a real column to write to. Types were
+  regenerated afterward (`src/types/database.ts` gained `notes` on
+  players Row/Insert/Update and nothing else).
+
+## Known risk: no row-level security yet
+
+Tables created through the SQL editor do not have row-level security
+enabled by default, and no policies exist. The browser client uses the
+public anon key, so anyone holding that key could read **and write**
+these tables directly. Acceptable for this class project (no real data,
+no auth in the brief), but it is the first thing to fix — enable RLS and
+add policies — before this schema ever holds real scouting data.

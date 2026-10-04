@@ -47,6 +47,7 @@ export type Database = {
           full_name: string
           id: string
           jersey_number: number | null
+          notes: string | null
           position: string | null
           team_name: string | null
         }
@@ -55,6 +56,7 @@ export type Database = {
           full_name: string
           id?: string
           jersey_number?: number | null
+          notes?: string | null
           position?: string | null
           team_name?: string | null
         }
@@ -63,6 +65,7 @@ export type Database = {
           full_name?: string
           id?: string
           jersey_number?: number | null
+          notes?: string | null
           position?: string | null
           team_name?: string | null
         }

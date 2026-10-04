@@ -14,3 +14,6 @@ dist/
 # OS / editor noise
 .DS_Store
 *.log
+
+# Supabase CLI scratch state (project link cache) — local only
+supabase/.temp/
