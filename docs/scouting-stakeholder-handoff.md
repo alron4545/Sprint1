@@ -26,7 +26,7 @@ Three tables, defined in `supabase/migrations/001_scouting_schema.sql`:
 
 **Typed boundary.** Database types are generated from the live project into `src/types/database.ts` (recipe: `docs/typegen-notes.md`). All data access goes through `src/lib/scouting/` (`queries.ts` reads, `mutations.ts` writes, `rpc.ts` the totals function). Pages and hooks import only those helpers; the raw Supabase client is private. A search found no violations, and the code has no `any` or type-suppression comments.
 
-*Tie to the promise:* if a column is renamed or a type changes, regenerating the types makes the compiler flag every helper that used the old shape, so the break shows up at build time. Probes confirmed this for wrong columns, wrong ids, a misspelled RPC name and argument, and missing required fields.
+*Tie to the promise:* if a column is renamed or a type changes **and the types are regenerated**, that regeneration makes the compiler flag every helper that used the old shape, so the break shows up at build time. Probes confirmed this for wrong columns, wrong ids, a misspelled RPC name and argument, and missing required fields. If regeneration is skipped, the compiler cannot see the rename and the break only shows when the page is used; nothing enforces regeneration yet (see the acceptance doc's regression note).
 
 ## 3. RPC purpose
 

@@ -19,7 +19,7 @@
 |---|---|---|---|
 | 1 | Join integrity: an event always points at a real player and a real game | Database constraint test on in-memory Postgres (PGlite) running `001_scouting_schema.sql`. Rejected: event for a missing player (23503), event for a missing game (23503), null player (23502), blank `event_type` (23514), delete of a player or game that still has events (23001, restrict). Accepted: a valid event. | Verified (stand-in) |
 | 2 | Filter fidelity: player, game and event filters return only matching rows | Query helpers typed against generated `Database` types; `tsc --noEmit` passes. Browser run (mocked REST) checked position/team filters, game filter and the empty state. Query behavior against live data not yet seen. | Verified (static) + stand-in; live pending |
-| 3 | Schema-change safety: a rename or wrong type fails before deploy | Type-boundary probes, all failed `tsc` as intended: wrong column name, wrong id type, misspelled RPC name, misspelled RPC argument, missing required insert field, unknown column on insert. A misspelled column inside a `select()` string is only caught when the result passes through an explicit return type (every helper has one). | Verified (static) |
+| 3 | Schema-change safety: once types are regenerated, a rename or wrong type fails at typecheck (see the regression note below for the limit) | Type-boundary probes, all failed `tsc` as intended: wrong column name, wrong id type, misspelled RPC name, misspelled RPC argument, missing required insert field, unknown column on insert. A misspelled column inside a `select()` string is only caught when the result passes through an explicit return type (every helper has one). | Verified (static) |
 | 4 | Aggregate correctness: totals come from the database RPC | `player_event_counts` run on PGlite: all games, one game, date range, a game with no events, case-insensitive goal count, players with no events absent (inner join). Boundary search: only `rpc.ts` calls `.rpc`. | Verified (stand-in) |
 | 5 | Cache freshness: a saved event is visible without reload | TanStack cache test with stubbed writes: a successful event marks every events list and the totals stale and leaves players and games alone; a failed write rejects with a readable message and marks nothing stale; a notes update marks only player lists and that player's detail. Browser run: new event appeared with no reload, totals updated. | Verified (stand-in) |
 
@@ -30,6 +30,27 @@
 - Boundary search: no route or component imports the raw Supabase client or calls `.from` / `.rpc` outside `src/lib/scouting`.
 - Browser smoke run (Playwright + Chromium, Supabase REST mocked): 14 of 14 checks passed — filters, empty state, form options come from data, feed shows names, new event appears without reload, readable failure message with no refetch, totals update, game filter, load-error alert, no page errors.
 - Typegen against the live project confirmed the schema exists as expected (tables, foreign keys, `players.notes`, the RPC function).
+
+## Regression note: typed safety depends on regenerating types
+
+The compiler checks our code against `src/types/database.ts`, **not** against the live database. If a column is renamed in Supabase and the types file is **not** regenerated, `tsc` still passes, because code and stale types agree with each other. The break then appears only at run time, when the route is exercised and the database returns an error (for example, an unknown column).
+
+| Situation | Caught by `tsc`? | Caught when route is exercised? |
+|---|---|---|
+| Column renamed in DB, types **not** regenerated, code unchanged | No | Yes: the filtered or joined read errors and the page shows its load-error state |
+| Column renamed in DB, types regenerated, code unchanged | Yes: each helper using the old name fails | n/a, stopped earlier |
+| Code edited to a column that is not in the types | Yes | n/a |
+
+Consumer call that the regenerated types protect (`src/lib/scouting/queries.ts`):
+
+```ts
+let query = supabase.from('players').select('*').order('full_name')
+if (filters.teamName) query = query.eq('team_name', filters.teamName)
+```
+
+After regeneration, renaming `team_name` makes that `.eq('team_name', …)` a compile error. Without regeneration it keeps compiling and fails live.
+
+**Gate consequence:** criterion 3 is only as strong as the regeneration step. Until a check enforces it (for example, regenerate types in CI and fail if `git diff` is not empty), the live click-through below is the only thing that would catch a missed regeneration, so it must be done before sign-off.
 
 ## Pending: live click-through
 
