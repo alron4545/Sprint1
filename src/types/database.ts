@@ -124,7 +124,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      player_event_counts: {
+        Args: {
+          p_game_id?: string
+          p_played_from?: string
+          p_played_to?: string
+        }
+        Returns: {
+          event_count: number
+          goal_count: number
+          player_id: string
+          player_name: string
+          player_position: string
+          team_name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

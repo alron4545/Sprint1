@@ -5,23 +5,29 @@
 // returns per-player event and goal totals, instead of fetching every event
 // and counting in the browser.
 //
-// The generated Database type doesn't know about this function yet — the next
-// step regenerates src/types/database.ts. Until then PlayerEventCountRow is a
-// small local type, and the single cast below is the only place the client's
-// types are narrowed by hand. Delete the cast and use supabase.rpc directly
-// once typegen includes the function.
+// The function name, argument names, and row columns all come from the
+// generated Database type (src/types/database.ts). Rename anything in the SQL,
+// regenerate the types, and this file fails at typecheck instead of in a
+// scout's browser. This is the ONLY module allowed to call supabase.rpc().
 
-import type { PostgrestError } from '@supabase/supabase-js'
+import type { Database } from '../../types/database'
 import { supabase } from '../supabase/client'
 
-/** One row per player who has at least one matching event. */
-export type PlayerEventCountRow = {
-  player_id: string
-  player_name: string
+type RpcDef = Database['public']['Functions']['player_event_counts']
+type GeneratedRow = RpcDef['Returns'][number]
+
+/**
+ * One row per player who has at least one matching event.
+ * Typegen marks every column of a RETURNS TABLE as non-null because Postgres
+ * can't describe nullability there, but players.position and players.team_name
+ * ARE nullable — so those two are widened to `string | null` here.
+ */
+export type PlayerEventCountRow = Omit<
+  GeneratedRow,
+  'player_position' | 'team_name'
+> & {
   player_position: string | null
   team_name: string | null
-  event_count: number
-  goal_count: number
 }
 
 /** Same optional filters the SQL function takes. Omit or null = don't filter. */
@@ -32,32 +38,19 @@ export type PlayerEventCountFilters = {
   playedTo?: string | null
 }
 
-type PlayerEventCountsRpc = (
-  fn: 'player_event_counts',
-  args: {
-    p_game_id: string | null
-    p_played_from: string | null
-    p_played_to: string | null
-  },
-) => PromiseLike<{
-  data: Array<PlayerEventCountRow> | null
-  error: PostgrestError | null
-}>
-
-// TEMPORARY (until typegen covers the RPC): see file header.
-const callRpc = supabase.rpc.bind(supabase) as unknown as PlayerEventCountsRpc
-
 export async function getPlayerEventCounts(
   filters: PlayerEventCountFilters = {},
 ): Promise<Array<PlayerEventCountRow>> {
-  const { data, error } = await callRpc('player_event_counts', {
-    p_game_id: filters.gameId ?? null,
-    p_played_from: filters.playedFrom ?? null,
-    p_played_to: filters.playedTo ?? null,
-  })
+  const args: RpcDef['Args'] = {
+    p_game_id: filters.gameId ?? undefined,
+    p_played_from: filters.playedFrom ?? undefined,
+    p_played_to: filters.playedTo ?? undefined,
+  }
+
+  const { data, error } = await supabase.rpc('player_event_counts', args)
 
   if (error) {
     throw new Error(`player_event_counts failed: ${error.message}`)
   }
-  return data ?? []
+  return data
 }
