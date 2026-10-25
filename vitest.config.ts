@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     // Pure helpers, not React components — no browser DOM needed yet.
     environment: 'node',
-    include: ['app/**/*.test.ts'],
+    include: ['app/**/*.test.ts', 'src/**/*.test.ts'],
   },
   resolve: {
     // Same mechanism vite.config.ts already uses: reads the '#/*' and
