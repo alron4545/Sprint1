@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as DirectoryRouteImport } from './routes/directory'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as GamesIndexRouteImport } from './routes/games/index'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
@@ -32,6 +33,11 @@ const AboutRoute = AboutRouteImport.update({
 const DirectoryRoute = DirectoryRouteImport.update({
   id: '/directory',
   path: '/directory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesIndexRoute = GamesIndexRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/directory': typeof DirectoryRoute
+  '/login': typeof LoginRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/scouting/aggregates': typeof ScoutingAggregatesRoute
   '/scouting/events': typeof ScoutingEventsRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/directory': typeof DirectoryRoute
+  '/login': typeof LoginRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/scouting/aggregates': typeof ScoutingAggregatesRoute
   '/scouting/events': typeof ScoutingEventsRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/directory': typeof DirectoryRoute
+  '/login': typeof LoginRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/scouting/aggregates': typeof ScoutingAggregatesRoute
   '/scouting/events': typeof ScoutingEventsRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/directory'
+    | '/login'
     | '/players/$playerId'
     | '/scouting/aggregates'
     | '/scouting/events'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/directory'
+    | '/login'
     | '/players/$playerId'
     | '/scouting/aggregates'
     | '/scouting/events'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/directory'
+    | '/login'
     | '/players/$playerId'
     | '/scouting/aggregates'
     | '/scouting/events'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   DirectoryRoute: typeof DirectoryRoute
+  LoginRoute: typeof LoginRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   ScoutingAggregatesRoute: typeof ScoutingAggregatesRoute
   ScoutingEventsRoute: typeof ScoutingEventsRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/directory'
       fullPath: '/directory'
       preLoaderRoute: typeof DirectoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/': {
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   DirectoryRoute: DirectoryRoute,
+  LoginRoute: LoginRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   ScoutingAggregatesRoute: ScoutingAggregatesRoute,
   ScoutingEventsRoute: ScoutingEventsRoute,
