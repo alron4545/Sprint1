@@ -41,6 +41,38 @@ export type Database = {
         }
         Relationships: []
       }
+      // HAND-ADDED to match supabase/migrations/20250321000000_hockey_staff_rls.sql,
+      // which is not applied to the live project yet. After you apply it, regenerate
+      // this file (docs/typegen-notes.md); the generated version replaces this block.
+      player_scouting_notes: {
+        Row: {
+          created_at: string
+          id: string
+          note: string
+          player_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note: string
+          player_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_scouting_notes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           created_at: string
